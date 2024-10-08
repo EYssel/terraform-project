@@ -13,7 +13,7 @@ permissions:
   contents: read # Checkout
 
 jobs:
-  deploy-demo-nginx:
+  deploy-infrastructure:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,9 +24,12 @@ jobs:
           aws-region: eu-west-1
       - name: Check out repository code
         uses: actions/checkout@v3
-    
+
       - name: Generate Terraform Plan
         uses: dflook/terraform-plan@v1
-    
+
+      - name: Init Terraform
+        run: terraform init
+
       - name: Deploy Terraform Plan
         run: terraform apply -auto-approve
