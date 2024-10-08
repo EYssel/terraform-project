@@ -1,16 +1,7 @@
 name: Destroy Infrastructure
 
 on:
-  workflow-dispatch:
-    inputs:
-      confirm:
-        description: "Confirm"
-        required: true
-        default: "no"
-        type: choice
-        options:
-          - yes
-          - no
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
