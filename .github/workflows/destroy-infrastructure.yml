@@ -1,0 +1,33 @@
+name: Destroy Infrastructure
+on:
+  workflow-dispatch
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # AWS OIDC
+  contents: read # Checkout
+
+jobs:
+  destroy-infrastructure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_NUMBER }}:role/github-oidc-role
+          aws-region: eu-west-1
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Generate Terraform Plan
+        uses: dflook/terraform-plan@v1
+
+      - name: Init Terraform
+        run: terraform init
+
+      - name: Deploy Terraform Plan
+        run: terraform destroy -auto-approve
