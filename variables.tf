@@ -14,19 +14,14 @@ variable "public_subnet_cidr_blocks" {
   default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 }
 
-variable "eks_cluster_name" {
-  description = "The name of the EKS cluster."
-  default     = "TaskCluster"
-}
-
 variable "ecr_repository_name" {
   description = "The name of the ECR repository."
-  default     = "my-ecr-repository"
+  default     = "demo-ecr-repository"
 }
 
 variable "db_instance_identifier" {
   description = "The identifier for the RDS MySQL database instance."
-  default     = "my-db-instance"
+  default     = "demo-db-instance"
 }
 
 variable "db_instance_username" {

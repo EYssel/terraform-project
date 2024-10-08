@@ -32,7 +32,7 @@ data "aws_availability_zones" "available" {
 }
 
 # Create an Elastic Container Registry (ECR)
-resource "aws_ecr_repository" "my_ecr_repository" {
+resource "aws_ecr_repository" "demo_ecr_repository" {
   name = var.ecr_repository_name
 
   image_tag_mutability = "IMMUTABLE"
@@ -44,7 +44,7 @@ resource "random_string" "password" {
 }
 
 # Create an Amazon RDS MySQL database
-resource "aws_db_instance" "my_db_instance" {
+resource "aws_db_instance" "demo_db_instance" {
   identifier          = var.db_instance_identifier
   engine              = "mysql"
   allocated_storage   = 20

@@ -10,12 +10,12 @@ output "ecr_repository_url" {
 }
 
 output "db_instance_endpoint" {
-  value       = aws_db_instance.my_db_instance.endpoint
+  value       = aws_db_instance.demo_db_instance.endpoint
   description = "The endpoint of the RDS MySQL database."
 }
 
 output "db_instance_username" {
-  value       = aws_db_instance.my_db_instance.username
+  value       = aws_db_instance.demo_db_instance.username
   description = "The username for the RDS MySQL database."
   sensitive   = true
 }
