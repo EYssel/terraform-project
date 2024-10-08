@@ -1,90 +1,95 @@
-variable "azs" {
-  type        = list(string)
-  description = "Availability Zones"
-  default     = ["eu-central-1a", "eu-central-1b", "eu-central-1c"]
-}
-
 provider "aws" {
-  region = "eu-west-1"
+  region = var.aws_region
 }
 
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+# Create a VPC
+resource "aws_vpc" "demo_vpc" {
+  cidr_block           = var.vpc_cidr_block
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
-    Name = "Demo VPC"
+    Name = "taskVPC"
   }
 }
 
-variable "public_subnet_cidrs" {
-  type        = list(string)
-  description = "Public Subnet CIDR values"
-  default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-}
-
-variable "private_subnet_cidrs" {
-  type        = list(string)
-  description = "Private Subnet CIDR values"
-  default     = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
-}
-
+# Create  subnets
 resource "aws_subnet" "public_subnets" {
-  count             = length(var.public_subnet_cidrs)
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = element(var.public_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
+  count = length(var.public_subnet_cidr_blocks)
+
+  vpc_id     = aws_vpc.demo_vpc.id
+  cidr_block = var.public_subnet_cidr_blocks[count.index]
+
+  availability_zone = element(data.aws_availability_zones.available.names, count.index)
 
   tags = {
-    Name = "Public Subnet ${count.index + 1}"
+    Name = "PublicSubnet${count.index + 1}"
   }
 }
 
-resource "aws_subnet" "private_subnets" {
-  count             = length(var.private_subnet_cidrs)
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = element(var.private_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
+data "aws_availability_zones" "available" {
+  state = "available"
+}
 
+# Create an Elastic Container Registry (ECR)
+resource "aws_ecr_repository" "my_ecr_repository" {
+  name = var.ecr_repository_name
+
+  image_tag_mutability = "IMMUTABLE"
+}
+
+resource "random_string" "password" {
+  length  = 16
+  special = false
+}
+
+# Create an Amazon RDS MySQL database
+resource "aws_db_instance" "my_db_instance" {
+  identifier          = var.db_instance_identifier
+  engine              = "mysql"
+  allocated_storage   = 20
+  instance_class      = "db.t3.micro"
+  username            = var.db_instance_username
+  password            = random_string.password.result
+  publicly_accessible = false
+  skip_final_snapshot = true
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "demo_server" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
   tags = {
-    Name = "Private Subnet ${count.index + 1}"
+    Name = "Demo-App"
   }
 }
 
+resource "aws_security_group" "ec2" {
+  name = "demo-ec2-sg"
 
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "Demo VPC IG"
-  }
-}
-
-resource "aws_route_table" "second_rt" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-
-  tags = {
-    Name = "2nd Route Table"
-  }
-}
-
-resource "aws_route_table_association" "public_subnet_asso" {
-  count          = length(var.public_subnet_cidrs)
-  subnet_id      = element(aws_subnet.public_subnets[*].id, count.index)
-  route_table_id = aws_route_table.second_rt.id
-}
-
-resource "aws_security_group" "demo-sg" {
-  name_prefix = "demo-sg"
+  description = "EC2 security group"
+  vpc_id      = aws_vpc.demo_vpc.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 3306
+    to_port     = 3306
     protocol    = "tcp"
+    description = "MySQL"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -92,6 +97,15 @@ resource "aws_security_group" "demo-sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
+    description = "Telnet"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    description = "HTTP"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -99,52 +113,7 @@ resource "aws_security_group" "demo-sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
+    description = "HTTPS"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_ecr_repository" "demo-repo" {
-  name = "Demo Repo"
-}
-
-# resource "aws_ecr_lifecycle_policy" "demo-lifecycle-policy" {
-#   repository = aws_ecr_repository.demo-repo
-#   policy     = <<EOF
-#   {
-#     "rules": [
-#         {
-#             "rulePriority": 1,
-#             "description": "Expire images older than 14 days",
-#             "selection": {
-#                 "tagStatus": "untagged",
-#                 "countType": "sinceImagePushed",
-#                 "countUnit": "days",
-#                 "countNumber": 14
-#             },
-#             "action": {
-#                 "type": "expire"
-#             }
-#         }
-#     ]
-# }
-# EOF
-# }
-
-resource "aws_instance" "demo-sg" {
-  ami           = "ami-006dcf34c09e50022" // Amazon Linux 2 AMI
-  instance_type = "t2.micro"
-  vpc_security_group_ids = [
-    aws_security_group.demo-sg.id,
-  ]
-}
-
-output "public_ip" {
-  value = aws_instance.demo-sg.public_ip
 }
