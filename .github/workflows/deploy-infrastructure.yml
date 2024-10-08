@@ -1,4 +1,4 @@
-name: CI
+name: Deploy Infrastructure
 on:
   push:
     branches:
@@ -25,5 +25,8 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
     
-      - name: terraform plan
+      - name: Generate Terraform Plan
         uses: dflook/terraform-plan@v1
+    
+      - name: Deploy Terraform Plan
+        run: terraform apply
