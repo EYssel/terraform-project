@@ -180,12 +180,64 @@ resource "aws_security_group" "ec2" {
   }
 }
 
+resource "aws_iam_role" "ec2_role_demo" {
+  name = "ec2_role_demo"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+
+  tags = {
+    project = "hello-world"
+  }
+}
+
+resource "aws_iam_instance_profile" "ec2_profile_demo" {
+  name = "ec2_profile_demo"
+  role = aws_iam_role.ec2_role_demo.name
+}
+
+# TODO: Refine policy to only allow pull from this ECR
+resource "aws_iam_role_policy" "ec2_policy" {
+  name = "ec2_policy"
+  role = aws_iam_role.ec2_role_demo.id
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_instance" "demo_server" {
   ami                    = "ami-0fff1b9a61dec8a5f"
   instance_type          = "t2.micro"
   key_name               = aws_key_pair.tf_key.key_name
   vpc_security_group_ids = [aws_security_group.ec2.id]
   subnet_id              = aws_subnet.public_subnets[0].id
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile_demo.name
   tags = {
     Name = "Demo-App"
   }
@@ -195,6 +247,7 @@ resource "aws_instance" "demo_server" {
               sudo systemctl start docker
               sudo systemctl enable docker 
               EOF
+  # user_data = templatefile("./user-data.sh", {})
 }
 
 resource "aws_eip" "demo_web_eip" {
