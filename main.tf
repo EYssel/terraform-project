@@ -101,6 +101,13 @@ resource "aws_db_instance" "demo_db_instance" {
   skip_final_snapshot = true
 }
 
+# resource "aws_db_subnet_group" "demo_db_subnet_group" {
+#   name        = "demo_db_subnet_group"
+#   description = "DB subnet group for Demo"
+  
+#   subnet_ids  = [for subnet in aws_subnet.private_subnet : subnet.id]
+# }
+
 # data "aws_ami" "ubuntu" {
 #   most_recent = true
 
