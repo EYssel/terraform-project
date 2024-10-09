@@ -30,3 +30,8 @@ output "ec2_instance_id" {
   value       = aws_instance.demo_server.host_id
   description = "The Host ID of the instance"
 }
+
+output "ec2_instance_key_name" {
+  value = aws_instance.demo_server.key_name
+  description = "EC2 Instance Key Name"
+}

@@ -28,3 +28,8 @@ variable "db_instance_username" {
   description = "The username for the RDS MySQL database."
   default     = "admin"
 }
+
+variable "key_pair_name" {
+  description = "EC2 Key Pair Name"
+  default     = "demo-key-pair-name"
+}

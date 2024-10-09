@@ -71,12 +71,20 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-resource "aws_instance" "demo_server" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  tags = {
-    Name = "Demo-App"
-  }
+
+resource "tls_private_key" "rsa-demo" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "tf_key" {
+  key_name   = var.key_pair_name
+  public_key = tls_private_key.rsa-demo.public_key_openssh
+}
+
+resource "local_file" "ssh_key_file" {
+  filename = "ssh_key_file"
+  content  = tls_private_key.rsa-demo.private_key_pem
 }
 
 resource "aws_security_group" "ec2" {
@@ -116,4 +124,14 @@ resource "aws_security_group" "ec2" {
     description = "HTTPS"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_instance" "demo_server" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.tf_key.key_name
+  tags = {
+    Name = "Demo-App"
+  }
+  user_data = templatefile("./user-data.sh", {})
 }
