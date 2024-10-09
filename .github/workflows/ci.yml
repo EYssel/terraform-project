@@ -21,7 +21,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_NUMBER }}:role/github-oidc-role
-          aws-region: eu-west-1
+          aws-region: us-east-1
       - name: Check out repository code
         uses: actions/checkout@v3
 
