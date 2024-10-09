@@ -28,8 +28,11 @@ jobs:
       - name: Generate Terraform Plan
         uses: dflook/terraform-plan@v1
 
-      - name: Init Terraform
-        run: terraform init
+      # - name: Init Terraform
+      #   run: terraform init
 
-      - name: Deploy Terraform Plan
-        run: terraform apply -auto-approve
+      # This does not work as the TF State is not saved and loaded when planning.
+      # TODO: Pull and push TF state from S3 and deploy automatically or create an API of some sort to manage it.
+      
+      # - name: Deploy Terraform Plan
+      #   run: terraform apply -auto-approve
